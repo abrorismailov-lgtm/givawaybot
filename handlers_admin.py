@@ -381,3 +381,23 @@ async def export_csv(cb: CallbackQuery, db: Database):
     await cb.message.answer_document(
         BufferedInputFile(buf.getvalue().encode("utf-8-sig"), filename=f"giveaway_{g['id']}.csv"))
     await cb.answer()
+
+
+# ---------- ответы на всё, что не распознано (подключается последним) ----------
+fallback = Router()
+fallback.message.filter(F.chat.type == ChatType.PRIVATE)
+
+
+@fallback.message()
+async def unknown_message(message: Message):
+    uid = message.from_user.id
+    if config.ADMIN_IDS and uid not in config.ADMIN_IDS:
+        return await message.answer(
+            f"⛔️ У вас нет доступа к созданию розыгрышей.\nВаш Telegram ID: <code>{uid}</code>\n\n"
+            "Если вы владелец бота — добавьте этот ID в переменную ADMIN_IDS (или очистите её) и перезапустите бота.")
+    await message.answer("Не понял сообщение 🤔\n\n/new — создать розыгрыш\n/list — мои розыгрыши\n/help — справка")
+
+
+@fallback.callback_query()
+async def unknown_callback(cb: CallbackQuery):
+    await cb.answer("Кнопка устарела (бот перезапускался). Начните заново: /new", show_alert=True)
